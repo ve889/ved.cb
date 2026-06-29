@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShieldCheck Pro // Advanced Security Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-deep: #060913;
+            --bg-surface: #0F1524;
+            --bg-card: #172036;
+            --bg-input: #1E2942;
+            --accent-primary: #6366F1;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            
+            --text-main: #F8FAFC;
+            --text-muted: #64748B;
+            
+            /* Strength States */
+            --weak: #EF4444;
+            --medium: #3B82F6;
+            --strong: #10B981;
+            
+            --border-glow: linear-gradient(135deg, #6366F1, #A855F7);
+            --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Dynamic Canvas Background */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        /* Top Navigation Header */
+        header {
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            animation: slideDownFade 1s var(--transition-smooth);
+        }
+
+        header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366F1 0%, #D946EF 50%, #10B981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+            position: relative;
+            display: inline-block;
+        }
+
+        header p {
+            color: var(--text-muted);
+            margin-top: 0.6rem;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            flex: 1;
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem 4rem 2rem;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 2rem;
+            align-items: start;
+            animation: scaleUpFade 0.8s var(--transition-smooth) 0.2s both;
+        }
+
+        .main-card, .side-panel {
+            background: var(--bg-surface);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 28px;
+            padding: 2.5rem;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            transition: var(--transition-smooth);
+        }
+
+        .main-card:hover, .side-panel:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 40px 80px rgba(99, 102, 241, 0.08);
+        }
+
+        /* Premium Input Box Area */
+        .input-wrapper {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            padding: 1.2rem 4rem 1.2rem 1.5rem;
+            border-radius: 18px;
+            color: white;
+            font-size: 1.2rem;
+            font-family: 'Space Grotesk', sans-serif;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--accent-primary);
+            background: var(--bg-card);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);
+        }
+
+        .input-wrapper .toggle-visibility {
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: var(--transition-smooth);
+        }
+
+        .input-wrapper .toggle-visibility:hover {
+            color: var(--text-main);
+            transform: translateY(-50%) scale(1.15);
+        }
+
+        /* Segments Progress Tracker */
+        .meter-ui {
+            margin-bottom: 2rem;
+        }
+
+        .meter-bars {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 0.8rem;
+        }
+
+        .bar-segment {
+            height: 8px;
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-segment::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.15), transparent);
+            transform: translateX(-100%);
+        }
+
+        .meter-bars.active-anim .bar-segment::after {
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+
+        .meter-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        #strengthLabel {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: var(--transition-smooth);
+        }
+
+        /* Checklist Grid */
+        .grid-requirements {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            padding: 1.8rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .criteria-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            transition: var(--transition-smooth);
+            padding: 0.5rem;
+            border-radius: 10px;
+        }
+
+        .criteria-item i {
+            font-size: 1rem;
+            transition: var(--transition-smooth);
+        }
+
+        .criteria-item.pass {
+            color: var(--text-main);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .criteria-item.pass i {
+            color: var(--strong);
+            transform: rotate(360deg) scale(1.2);
+        }
+
+        /* Metrics Analysis Row (New Feature) */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .metric-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 1rem;
+            border-radius: 14px;
+            text-align: center;
+        }
+
+        .metric-box span {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+        }
+
+        .metric-box p {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Dynamic Control Action Buttons */
+        .action-container {
+            margin-top: 2rem;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            border: none;
+            padding: 1.1rem;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #6366F1, #A855F7);
+            color: white;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .btn-copy {
+            background: var(--bg-card);
+            color: #A5B4FC;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-copy:hover {
+            background: rgba(99, 102, 241, 0.15);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        /* History & Vault Session List (New Feature) */
+        .side-panel h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .side-panel h3 i {
+            color: #A855F7;
+        }
+
+        .history-list {
+            max-height: 290px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 5px;
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .history-item {
+            background: var(--bg-card);
+            padding: 0.9rem 1.2rem;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid var(--text-muted);
+            animation: fadeInRight 0.4s ease;
+            transition: var(--transition-smooth);
+        }
+
+        .history-item:hover {
+            transform: translateX(5px);
+            background: var(--bg-input);
+        }
+
+        .history-item.strong { border-left-color: var(--strong); }
+        .history-item.medium { border-left-color: var(--medium); }
+        .history-item.weak { border-left-color: var(--weak); }
+
+        .history-pass-text {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem;
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .btn-mini-copy {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-mini-copy:hover {
+            color: white;
+            transform: scale(1.2);
+        }
+
+        .empty-state {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        /* Modernized Expanded Multi-Column Footer */
+        footer {
+            background: #04060D;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 3rem 2rem 2rem 2rem;
+            margin-top: auto;
+            position: relative;
+        }
+
+        .footer-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.5fr repeat(3, 1fr);
+            gap: 2.5rem;
+            padding-bottom: 2.5rem;
+        }
+
+        .footer-brand h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.4rem;
+            margin-bottom: 0.8rem;
+            background: linear-gradient(135deg, #6366F1, #A855F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .footer-brand p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .footer-column h5 {
+            color: var(--text-main);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.2rem;
+        }
+
+        .footer-column p {
+            color: #94A3B8;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .footer-column a {
+            color: #94A3B8;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition-smooth);
+        }
+
+        .footer-column a:hover {
+            color: var(--accent-primary);
+            transform: translateX(4px);
+        }
+
+        .footer-bottom {
+            max-width: 1100px;
+            margin: 0 auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding-top: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        /* Dynamic Animations Constants */
+        @keyframes slideDownFade {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scaleUpFade {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(15px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Responsive Layout Optimization */
+        @media (max-width: 900px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid-requirements { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+            .footer-bottom { flex-direction: column; gap: 1rem; text-align: center; }
+            header h1 { font-size: 2.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bgCanvas"></canvas>
+
+    <header>
+        <h1>ShieldCheck Pro</h1>
+        <p>Enterprise grade client-side crypto analysis environment</p>
+    </header>
+
+    <div class="workspace">
+        <div class="main-card">
+            <div class="input-wrapper">
+                <input type="password" id="passwordInput" placeholder="Enter sensitive token key sequence...">
+                <button class="toggle-visibility" id="toggleView" title="Toggle visibility view state">
+                    <i class="fa-regular fa-eye"></i>
+                </button>
+            </div>
+
+            <div class="meter-ui">
+                <div class="meter-bars" id="meterBarContainer">
+                    <div class="bar-segment"></div>
+                    <div class="bar-segment"></div>
+                    <div class="bar-segment"></div>
+                    <div class="bar-segment"></div>
+                </div>
+                <div class="meter-labels">
+                    <span>Threat Profile Matrix Assessment:</span>
+                    <span id="strengthLabel">Awaiting Input</span>
+                </div>
+            </div>
+
+            <div class="grid-requirements">
+                <div class="criteria-item" id="req-length">
+                    <i class="fa-solid fa-shield-halved"></i> 8+ Characters Index
+                </div>
+                <div class="criteria-item" id="req-upper">
+                    <i class="fa-solid fa-font"></i> Upper Alpha Case
+                </div>
+                <div class="criteria-item" id="req-number">
+                    <i class="fa-solid fa-fingerprint"></i> Numeric Sequence
+                </div>
+                <div class="criteria-item" id="req-special">
+                    <i class="fa-solid fa-terminal"></i> Special Symbol Variant
+                </div>
+            </div>
+
+            <div class="metrics-row">
+                <div class="metric-box">
+                    <span>Entropy Score</span>
+                    <p id="entropyDisplay">0 Bits</p>
+                </div>
+                <div class="metric-box">
+                    <span>Crack Est. Time</span>
+                    <p id="crackTimeDisplay">Instant</p>
+                </div>
+            </div>
+
+            <div class="action-container">
+                <button class="btn btn-generate" id="genBtn">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Compile Key Variant
+                </button>
+                <button class="btn btn-copy" id="copyBtn">
+                    <i class="fa-regular fa-copy"></i> Copy Output
+                </button>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Local Generated Vault</h3>
+            <div class="history-list" id="historyContainer">
+                <div class="empty-state">No keys generated in current sandbox runtime.</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <h4>ShieldCheck Suite</h4>
+                <p>Designed as a standalone secure evaluation environment ensuring zero network outbound data propagation leaks.</p>
+            </div>
+            <div class="footer-column">
+                <h5>Lead Engineer</h5>
+                <p>Ved Parekh</p>
+            </div>
+            <div class="footer-column">
+                <h5>Academic Track</h5>
+                <p>Computer Eng. Diploma</p>
+            </div>
+            <div class="footer-column">
+                <h5>Affiliation</h5>
+                <a href="https://svitvasad.ac.in/" target="_blank"><i class="fa-solid fa-building-columns"></i> SVIT VASAD</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div>
+                &copy; 2026 Security Core Frameworks. Engineered globally.
+            </div>
+            <div class="footer-column" style="margin: 0;">
+                <a href="mailto:ved.parekh2807@gmail.com"><i class="fa-regular fa-envelope"></i> ved.parekh2807@gmail.com</a>
+                <a href="https://github.com/ve889" target="_blank"><i class="fa-brands fa-github"></i> https://github.com/ve889</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        /* Matrix Interactive Background Stream Logic Setup */
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const columns = Math.floor(canvas.width / 25);
+        const fallDrops = Array(columns).fill(1);
+
+        function drawBackgroundMatrix() {
+            ctx.fillStyle = 'rgba(6, 9, 19, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.15)';
+            ctx.font = "14px monospace";
+
+            for(let i = 0; i < fallDrops.length; i++) {
+                const textChar = String.fromCharCode(33 + Math.floor(Math.random() * 93));
+                const xCoord = i * 25;
+                const yCoord = fallDrops[i] * 25;
+
+                ctx.fillText(textChar, xCoord, yCoord);
+
+                if(yCoord > canvas.height && Math.random() > 0.975) {
+                    fallDrops[i] = 0;
+                }
+                fallDrops[i]++;
+            }
+        }
+        setInterval(drawBackgroundMatrix, 40);
+
+        /* Core Password Metrics Security Suite Architecture */
+        const passwordInput = document.getElementById('passwordInput');
+        const toggleView = document.getElementById('toggleView');
+        const strengthLabel = document.getElementById('strengthLabel');
+        const meterBarContainer = document.getElementById('meterBarContainer');
+        const segments = document.querySelectorAll('.bar-segment');
+        
+        const entropyDisplay = document.getElementById('entropyDisplay');
+        const crackTimeDisplay = document.getElementById('crackTimeDisplay');
+        const historyContainer = document.getElementById('historyContainer');
+
+        const genBtn = document.getElementById('genBtn');
+        const copyBtn = document.getElementById('copyBtn');
+
+        const validationGrid = {
+            length: document.getElementById('req-length'),
+            upper: document.getElementById('req-upper'),
+            number: document.getElementById('req-number'),
+            special: document.getElementById('req-special')
+        };
+
+        // Input View Engine State Toggler
+        toggleView.addEventListener('click', () => {
+            const stateIsHidden = passwordInput.type === 'password';
+            passwordInput.type = stateIsHidden ? 'text' : 'password';
+            toggleView.innerHTML = stateIsHidden ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
+        });
+
+        passwordInput.addEventListener('input', runSecurityDiagnostics);
+
+        function runSecurityDiagnostics() {
+            const entryValue = passwordInput.value;
+            
+            const matchFlags = {
+                length: entryValue.length >= 8,
+                upper: /[A-Z]/.test(entryValue),
+                number: /[0-9]/.test(entryValue),
+                special: /[^A-Za-z0-9]/.test(entryValue)
+            };
+
+            let pointsAwarded = 0;
+            for (let criterion in matchFlags) {
+                if (matchFlags[criterion]) {
+                    pointsAwarded++;
+                    validationGrid[criterion].classList.add('pass');
+                } else {
+                    validationGrid[criterion].classList.remove('pass');
+                }
+            }
+
+            // Calculations for Advanced Metrics (Entropy Calculation)
+            let poolRange = 0;
+            if (/[a-z]/.test(entryValue)) poolRange += 26;
+            if (/[A-Z]/.test(entryValue)) poolRange += 26;
+            if (/[0-9]/.test(entryValue)) poolRange += 10;
+            if (/[^A-Za-z0-9]/.test(entryValue)) poolRange += 32;
+
+            let logEntropy = poolRange > 0 ? Math.floor(entryValue.length * Math.log2(poolRange)) : 0;
+            entropyDisplay.innerText = `${logEntropy} Bits`;
+
+            // Crack Estimator Output Parsing
+            if(logEntropy === 0) { crackTimeDisplay.innerText = "Instant"; }
+            else if(logEntropy < 35) { crackTimeDisplay.innerText = "Seconds"; }
+            else if(logEntropy < 55) { crackTimeDisplay.innerText = "Few Days"; }
+            else if(logEntropy < 75) { crackTimeDisplay.innerText = "Years"; }
+            else { crackTimeDisplay.innerText = "Centuries"; }
+
+            // Reset Segments
+            segments.forEach(seg => seg.style.background = 'rgba(255, 255, 255, 0.06)');
+            meterBarContainer.classList.remove('active-anim');
+
+            if (entryValue.length === 0) {
+                strengthLabel.innerText = "Awaiting Input";
+                strengthLabel.style.color = 'var(--text-muted)';
+                return;
+            }
+
+            let computedThemeColor = "";
+            let parsedLabelText = "";
+
+            if (pointsAwarded <= 1) {
+                parsedLabelText = "Critical Risk Profile";
+                computedThemeColor = 'var(--weak)';
+                segments[0].style.background = computedThemeColor;
+            } else if (pointsAwarded <= 3) {
+                parsedLabelText = "Moderate Integrity";
+                computedThemeColor = 'var(--medium)';
+                for(let i=0; i<3; i++) segments[i].style.background = computedThemeColor;
+            } else {
+                parsedLabelText = "Optimal Cryptographic Shield";
+                computedThemeColor = 'var(--strong)';
+                segments.forEach(seg => seg.style.background = computedThemeColor);
+                meterBarContainer.classList.add('active-anim');
+            }
+
+            strengthLabel.innerText = parsedLabelText;
+            strengthLabel.style.color = computedThemeColor;
+        }
+
+        // Generator Pipeline
+        genBtn.addEventListener('click', () => {
+            const charactersUniverse = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=";
+            let resultKey = "";
+            
+            // Structural guarantees injection
+            resultKey += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
+            resultKey += "0123456789"[Math.floor(Math.random() * 10)];
+            resultKey += "!@#$%^&*"[Math.floor(Math.random() * 8)];
+            
+            for(let loopIdx=0; loopIdx<11; loopIdx++) {
+                resultKey += charactersUniverse[Math.floor(Math.random() * charactersUniverse.length)];
+            }
+            
+            resultKey = resultKey.split('').sort(() => 0.5 - Math.random()).join('');
+            passwordInput.value = resultKey;
+            
+            runSecurityDiagnostics();
+            appendVaultHistory(resultKey, strengthLabel.innerText, strengthLabel.style.color);
+        });
+
+        // Add to Sidebar Log Engine
+        function appendVaultHistory(keyValue, ratingName, targetColor) {
+            const fallbackMsg = historyContainer.querySelector('.empty-state');
+            if(fallbackMsg) fallbackMsg.remove();
+
+            const itemNode = document.createElement('div');
+            itemNode.className = 'history-item';
+            itemNode.style.borderLeftColor = targetColor;
+
+            itemNode.innerHTML = `
+                <div class="history-pass-text" title="${keyValue}">${keyValue}</div>
+                <button class="btn-mini-copy" onclick="navigator.clipboard.writeText('${keyValue}')" title="Copy from history slot">
+                    <i class="fa-regular fa-copy"></i>
+                </button>
+            `;
+
+            historyContainer.insertBefore(itemNode, historyContainer.firstChild);
+        }
+
+        // Clipboard Copy Interaction Pipeline
+        copyBtn.addEventListener('click', () => {
+            if(!passwordInput.value) return;
+            navigator.clipboard.writeText(passwordInput.value);
+            
+            const nativeTextCache = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Buffered to Clipboard';
+            copyBtn.style.background = 'var(--strong)';
+            copyBtn.style.color = 'white';
+
+            setTimeout(() => {
+                copyBtn.innerHTML = nativeTextCache;
+                copyBtn.style.background = 'var(--bg-card)';
+                copyBtn.style.color = '#A5B4FC';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
